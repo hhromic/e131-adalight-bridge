@@ -24,23 +24,29 @@
 #include <string.h>
 #include <termios.h>
 #include <sys/socket.h>
+#include <sys/epoll.h>
 #include <functions.h>
 
 #define BAUD_RATE __MAX_BAUD
 #define E131_PORT 5568
+#define SERIAL_BUFFER_SIZE 65536
 #define UDP_BUFFER_SIZE 65536
 
 #define OFST_UNIV_HIGH 113
 #define OFST_UNIV_LOW 114
 #define OFST_DATA 126
 
+#define MAX_EPOLL_EVENTS 10
+
 int main(int argc, char **argv) {
-  int opt, serial_fd, socket_fd;
+  int opt, serial_fd, socket_fd, epoll_fd, n_fds, i;
   int num_leds = -1, universe = -1;
   char *device = NULL;
   unsigned char *adalight_buffer = NULL;
+  unsigned char serial_buffer[SERIAL_BUFFER_SIZE];
   unsigned char udp_buffer[UDP_BUFFER_SIZE];
   ssize_t rbytes, adalight_buffer_size, min_size;
+  struct epoll_event epoll_events[MAX_EPOLL_EVENTS];
 
   // program options
   while ((opt = getopt (argc, argv, "d:n:u:")) != -1) {
@@ -72,12 +78,19 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
 
+  // create an epoll file descriptor
+  if ((epoll_fd = epoll_create(1)) < 0) {
+    perror("epoll_create1");
+    exit(EXIT_FAILURE);
+  }
+
   // open serial device and initialise
   if ((serial_fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK)) < 0) {
     perror("serial device open");
     exit(EXIT_FAILURE);
   }
   init_serial(serial_fd, BAUD_RATE);
+  epoll_add_fd(epoll_fd, serial_fd);
   fprintf(stderr, "serial device '%s' opened\n", device);
 
   // initialise AdaLight buffer
@@ -91,34 +104,54 @@ int main(int argc, char **argv) {
   }
   init_socket_udp(socket_fd, E131_PORT);
   join_e131_multicast(socket_fd, universe);
+  epoll_add_fd(epoll_fd, socket_fd);
   fprintf(stderr, "multicast UDP server listening on port %d\n", E131_PORT);
 
   // receive socket data and forward to the serial port
   fprintf(stderr, "bridging packets from E1.31 to AdaLight, use CTRL+C to stop\n");
   min_size = OFST_DATA + (num_leds * 3);
   for (;;) {
-    if ((rbytes = recv(socket_fd, udp_buffer, UDP_BUFFER_SIZE , 0)) < 0) {
-      perror("recv");
+    // wait for an epoll event
+    if ((n_fds = epoll_wait(epoll_fd, epoll_events, MAX_EPOLL_EVENTS, -1)) < 0) {
+      perror("epoll_wait");
       exit(EXIT_FAILURE);
     }
 
-    // check if enough data was received
-    if (rbytes < min_size) {
-      fprintf(stderr, "not enough UDP data received (%d < %d bytes)\n", rbytes, min_size);
-      continue;
-    }
+    // check which event fired
+    for (i=0; i<n_fds; i++) {
+      if (epoll_events[i].data.fd == serial_fd) { // serial port data
+        if (read(serial_fd, serial_buffer, SERIAL_BUFFER_SIZE) < 0) {
+          perror("serial read");
+          exit(EXIT_FAILURE);
+        }
+      }
+      else if (epoll_events[i].data.fd == socket_fd) { // udp network data
+        if ((rbytes = recv(socket_fd, udp_buffer, UDP_BUFFER_SIZE , 0)) < 0) {
+          perror("recv");
+          exit(EXIT_FAILURE);
+        }
 
-    // check received universe
-    if (((udp_buffer[OFST_UNIV_HIGH] << 8) | udp_buffer[OFST_UNIV_LOW]) != universe) {
-      continue;
-    }
+        // check if enough data was received
+        if (rbytes < min_size) {
+          fprintf(stderr, "not enough UDP data received (%d < %d bytes)\n", rbytes, min_size);
+          continue;
+        }
 
-    // copy RGB data from the udp buffer to the AdaLight buffer
-    memcpy(&adalight_buffer[6], &udp_buffer[OFST_DATA], adalight_buffer_size);
-    send_buffer(serial_fd, adalight_buffer, adalight_buffer_size);
+        // check received universe
+        if (((udp_buffer[OFST_UNIV_HIGH] << 8) | udp_buffer[OFST_UNIV_LOW]) != universe) {
+          continue;
+        }
+
+        // copy RGB data from the udp buffer to the AdaLight buffer
+        memcpy(&adalight_buffer[6], &udp_buffer[OFST_DATA], adalight_buffer_size);
+        send_buffer(serial_fd, adalight_buffer, adalight_buffer_size);
+      }
+    }
   }
 
   // finished
+  close(epoll_fd);
+  close(socket_fd);
   close(serial_fd);
   exit(EXIT_SUCCESS);
 }

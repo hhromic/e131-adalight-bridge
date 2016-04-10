@@ -17,17 +17,17 @@
  * limitations under the License.
  */
 
-#ifndef _FUNCTIONS_H
-#define _FUNCTIONS_H
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/epoll.h>
 
-#include <stdint.h>
-
-extern void epoll_add_fd(int epoll_fd, int socket_fd);
-extern unsigned char * init_adalight_buffer(int num_leds);
-extern void init_serial(int fd, speed_t baud_rate);
-extern void init_socket_udp(int fd, uint16_t port);
-extern void join_e131_multicast(int fd, int universe);
-extern void send_buffer(int fd, unsigned char *buffer, size_t size);
-extern void show_usage(char *prog_name);
-
-#endif
+// add a file descriptor to an epoll instance
+void epoll_add_fd(int epoll_fd, int fd) {
+  struct epoll_event ev;
+  ev.events = EPOLLIN;
+  ev.data.fd = fd;
+  if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) < 0) {
+    perror("epoll_ctl EPOLL_CTL_ADD");
+    exit(EXIT_FAILURE);
+  }
+}
