@@ -26,7 +26,7 @@ Options:
 All options are mandatory.
 ```
 
-**Note:** because each DMX universe has a maximum of 512 channels and each RGB LEDs takes 3 channels, the maximum number of controllable AdaLight LEDs is **170**.
+**Note:** because each DMX universe has a maximum of 512 channels and each RGB LED takes 3 channels (one per color), the maximum number of controllable AdaLight LEDs is **170**.
 
 Example invocation for 100 LEDs AdaLight attached to /dev/ttyACM0:
 
