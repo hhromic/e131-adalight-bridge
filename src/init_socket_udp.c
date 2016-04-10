@@ -1,5 +1,5 @@
 /**
- * E1.31 to AdaLight Bridge Server
+ * E1.31 (sACN) to AdaLight Bridge Server
  * Hugo Hromic - http://github.com/hhromic
  *
  * Copyright 2016 Hugo Hromic

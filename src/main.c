@@ -1,5 +1,5 @@
 /**
- * E1.31 to AdaLight Bridge Server
+ * E1.31 (sACN) to AdaLight Bridge Server
  * Hugo Hromic - http://github.com/hhromic
  *
  * Copyright 2016 Hugo Hromic
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
   fprintf(stderr, "multicast UDP server listening on port %d\n", E131_PORT);
 
   // receive socket data and forward to the serial port
-  fprintf(stderr, "bridging packets from E1.31 to AdaLight, use CTRL+C to stop\n");
+  fprintf(stderr, "bridging E1.31 (sACN) to AdaLight, use CTRL+C to stop\n");
   min_size = OFST_DATA + (num_leds * 3);
   for (;;) {
     // wait for an epoll event

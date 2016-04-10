@@ -1,5 +1,5 @@
 /**
- * E1.31 to AdaLight Bridge Server
+ * E1.31 (sACN) to AdaLight Bridge Server
  * Hugo Hromic - http://github.com/hhromic
  *
  * Copyright 2016 Hugo Hromic
@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <sys/epoll.h>
 
-// add a file descriptor to an epoll instance
+// add a file descriptor for listening to an epoll file descriptor instance
 void epoll_add_fd(int epoll_fd, int fd) {
   struct epoll_event ev;
   ev.events = EPOLLIN;

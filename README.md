@@ -1,4 +1,4 @@
-# E1.31 to AdaLight Bridge Server
+# E1.31 (sACN) to AdaLight Bridge Server
 
 ## Compiling
 
