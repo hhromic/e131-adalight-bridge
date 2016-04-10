@@ -26,9 +26,9 @@
 #include <sys/socket.h>
 #include <functions.h>
 
-#define BAUD_RATE B115200
+#define BAUD_RATE __MAX_BAUD
 #define E131_PORT 5568
-#define UDP_BUFFER_SIZE 2048
+#define UDP_BUFFER_SIZE 4096
 
 #define OFST_UNIV_HIGH 113
 #define OFST_UNIV_LOW 114
@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
   char *device = NULL;
   unsigned char *adalight_buffer = NULL;
   unsigned char udp_buffer[UDP_BUFFER_SIZE];
-  ssize_t rbytes, adalight_buffer_size;
+  ssize_t rbytes, adalight_buffer_size, min_size;
 
   // program options
   while ((opt = getopt (argc, argv, "d:n:u:")) != -1) {
@@ -95,6 +95,7 @@ int main(int argc, char **argv) {
 
   // receive socket data and forward to the serial port
   fprintf(stderr, "bridging packets from E1.31 to AdaLight, use CTRL+C to stop\n");
+  min_size = OFST_DATA + (num_leds * 3);
   for (;;) {
     if ((rbytes = recv(socket_fd, udp_buffer, UDP_BUFFER_SIZE , 0)) < 0) {
       perror("recv");
@@ -102,8 +103,8 @@ int main(int argc, char **argv) {
     }
 
     // check if enough data was received
-    if (rbytes < OFST_DATA + (num_leds * 3)) {
-      fprintf(stderr, "not enough UDP data received (%d bytes)\n", rbytes);
+    if (rbytes < min_size) {
+      fprintf(stderr, "not enough UDP data received (%d < %d bytes)\n", rbytes, min_size);
       continue;
     }
 
