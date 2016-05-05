@@ -23,21 +23,12 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define MCAST_GROUP_TEMPLATE "239.255.%d.%d"
-
-// join UDP socket to an E1.31 multicast group on all interfaces
+// join UDP socket to the E1.31 multicast group of the DMX universe (239.255.hi.lo)
 void join_e131_multicast(int fd, uint16_t universe) {
-  char mcast_group[16];
-  struct ip_mreq mreq;
-
-  // compute multicast group from the universe number
-  uint8_t high = (universe & 0xff00) >> 8;
-  uint8_t low = universe & 0x00ff;
-  sprintf(mcast_group, MCAST_GROUP_TEMPLATE, high, low);
-
-  // join the multicast group
-  mreq.imr_multiaddr.s_addr = inet_addr(mcast_group);
-  mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+  struct ip_mreqn mreq;
+  mreq.imr_multiaddr.s_addr = htonl(0xefff0000 | universe);
+  mreq.imr_address.s_addr = htonl(INADDR_ANY);
+  mreq.imr_ifindex = 0;
   if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
     perror("setsockopt IP_ADD_MEMBERSHIP");
     exit(EXIT_FAILURE);
