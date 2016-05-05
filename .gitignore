@@ -1,3 +1,6 @@
+# Created by https://www.gitignore.io/api/c
+
+### C ###
 # Object files
 *.o
 *.ko
@@ -31,3 +34,4 @@ e131-adalight-bridge
 
 # Debug files
 *.dSYM/
+*.su

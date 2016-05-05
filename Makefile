@@ -16,24 +16,23 @@
 # limitations under the License.
 
 SOURCES = src/main.c \
-        src/epoll_add_fd.c \
-	src/init_adalight_buffer.c \
+	src/e131.c \
+	src/epoll_add_fd.c \
 	src/init_serial.c \
 	src/init_socket_udp.c \
 	src/join_e131_multicast.c \
-	src/send_buffer.c \
+	src/send_adalight.c \
 	src/show_usage.c
-INCLUDE = -I include
 PROGRAM = e131-adalight-bridge
 
 OBJECTS = $(SOURCES:.c=.o)
-CFLAGS = -Wall -O3 $(INCLUDE)
+CFLAGS = -Wall -O3
 
 all: $(PROGRAM)
 	strip -s $(PROGRAM)
 
 $(PROGRAM): $(OBJECTS)
-	$(CC) $(CFLAGS) $(INCLUDE) $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 clean:
 	rm -f $(PROGRAM) $(OBJECTS)

@@ -17,24 +17,19 @@
  * limitations under the License.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef _PROTOTYPES_H
+#define _PROTOTYPES_H
 
-// initialise and return an AdaLight buffer
-unsigned char * init_adalight_buffer(int num_leds) {
-  // buffer size = header + 3 bytes per LED
-  unsigned char *buffer = (unsigned char *)calloc(6 + (num_leds * 3), 1);
-  if (buffer == NULL) {
-    perror("buffer calloc");
-    exit(EXIT_FAILURE);
-  }
+#include <stdint.h>
+#include <termios.h>
+#include "e131.h"
 
-  // initialise header
-  buffer[0] = 'A'; // Magic word
-  buffer[1] = 'd';
-  buffer[2] = 'a';
-  buffer[3] = (num_leds - 1) >> 8;          // LED count high byte
-  buffer[4] = (num_leds - 1) & 0xff;        // LED count low byte
-  buffer[5] = buffer[3] ^ buffer[4] ^ 0x55; // Checksum
-  return buffer;
-}
+extern int e131_validate(e131_packet_t *packet);
+extern void epoll_add_fd(int epoll_fd, int socket_fd);
+extern void init_serial(int fd, speed_t baud_rate);
+extern void init_socket_udp(int fd, uint16_t port);
+extern void join_e131_multicast(int fd, uint16_t universe);
+extern void send_adalight(int fd, uint8_t *rgb_data, size_t size);
+extern void show_usage(char *prog_name);
+
+#endif

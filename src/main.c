@@ -21,45 +21,33 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <string.h>
 #include <termios.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <sys/epoll.h>
-#include <functions.h>
+#include <arpa/inet.h>
+#include "prototypes.h"
+#include "e131.h"
 
-#define BAUD_RATE __MAX_BAUD
-#define E131_PORT 5568
-#define SERIAL_BUFFER_SIZE 65536
-#define UDP_BUFFER_SIZE 65536
-
-#define OFST_UNIV_HIGH 113
-#define OFST_UNIV_LOW 114
-#define OFST_DATA 126
-
+#define SERIAL_BAUD_RATE __MAX_BAUD
+#define SERIAL_BUFFER_SIZE 1024
 #define MAX_EPOLL_EVENTS 10
 
 int main(int argc, char **argv) {
-  int opt, serial_fd, socket_fd, epoll_fd, n_fds, i;
-  int num_leds = -1, universe = -1;
+  int opt;
+  int epoll_fd, serial_fd, socket_udp_fd;
   char *device = NULL;
-  unsigned char *adalight_buffer = NULL;
-  unsigned char serial_buffer[SERIAL_BUFFER_SIZE];
-  unsigned char udp_buffer[UDP_BUFFER_SIZE];
-  ssize_t rbytes, adalight_buffer_size, min_size;
+  uint16_t universe = 0;
   struct epoll_event epoll_events[MAX_EPOLL_EVENTS];
+  int nfds, i;
+  e131_packet_t e131_packet;
+  uint8_t curr_sequence = 0, first_packet = 1;
 
   // program options
-  while ((opt = getopt (argc, argv, "d:n:u:")) != -1) {
+  while ((opt = getopt (argc, argv, "d:u:")) != -1) {
     switch (opt) {
       case 'd':
         device = optarg;
-        break;
-      case 'n':
-        num_leds = atoi(optarg);
-        if (num_leds < 1 || num_leds > 170) {
-          fprintf(stderr, "error: number of LEDs must be between 1-170\n");
-          exit(EXIT_FAILURE);
-        }
         break;
       case 'u':
         universe = atoi(optarg);
@@ -73,7 +61,7 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
   }
-  if (device == NULL || num_leds == -1 || universe == -1) {
+  if (device == NULL || universe == 0) {
     show_usage(argv[0]);
     exit(EXIT_FAILURE);
   }
@@ -89,69 +77,63 @@ int main(int argc, char **argv) {
     perror("serial device open");
     exit(EXIT_FAILURE);
   }
-  init_serial(serial_fd, BAUD_RATE);
+  init_serial(serial_fd, SERIAL_BAUD_RATE);
   epoll_add_fd(epoll_fd, serial_fd);
   fprintf(stderr, "serial device '%s' opened\n", device);
 
-  // initialise AdaLight buffer
-  adalight_buffer = init_adalight_buffer(num_leds);
-  adalight_buffer_size = 6 + (num_leds * 3);
-
-  // open socket, initialise and join multicast group
-  if ((socket_fd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+  // open udp socket, initialise and join multicast group
+  if ((socket_udp_fd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
     perror("socket");
     exit(EXIT_FAILURE);
   }
-  init_socket_udp(socket_fd, E131_PORT);
-  join_e131_multicast(socket_fd, universe);
-  epoll_add_fd(epoll_fd, socket_fd);
-  fprintf(stderr, "multicast UDP server listening on port %d\n", E131_PORT);
+  init_socket_udp(socket_udp_fd, E131_DEFAULT_PORT);
+  join_e131_multicast(socket_udp_fd, universe);
+  epoll_add_fd(epoll_fd, socket_udp_fd);
+  fprintf(stderr, "multicast UDP server listening on port %d\n", E131_DEFAULT_PORT);
 
-  // receive socket data and forward to the serial port
+  // bridge E1.31 data to AdaLight
   fprintf(stderr, "bridging E1.31 (sACN) to AdaLight, use CTRL+C to stop\n");
-  min_size = OFST_DATA + (num_leds * 3);
   for (;;) {
     // wait for an epoll event
-    if ((n_fds = epoll_wait(epoll_fd, epoll_events, MAX_EPOLL_EVENTS, -1)) < 0) {
+    if ((nfds = epoll_wait(epoll_fd, epoll_events, MAX_EPOLL_EVENTS, -1)) < 0) {
       perror("epoll_wait");
       exit(EXIT_FAILURE);
     }
 
-    // check which event fired
-    for (i=0; i<n_fds; i++) {
-      if (epoll_events[i].data.fd == serial_fd) { // serial port data
-        if (read(serial_fd, serial_buffer, SERIAL_BUFFER_SIZE) < 0) {
-          perror("serial read");
-          exit(EXIT_FAILURE);
-        }
+    // check received epoll events
+    for (i=0; i<nfds; i++) {
+      if (epoll_events[i].data.fd == serial_fd) { // serial port data received
+        tcflush(serial_fd, TCIFLUSH);
+        continue;
       }
-      else if (epoll_events[i].data.fd == socket_fd) { // udp network data
-        if ((rbytes = recv(socket_fd, udp_buffer, UDP_BUFFER_SIZE , 0)) < 0) {
+      if (epoll_events[i].data.fd == socket_udp_fd) { // udp network data received
+        if (recv(socket_udp_fd, e131_packet.raw, sizeof(e131_packet.raw), 0) < 0) {
           perror("recv");
           exit(EXIT_FAILURE);
         }
-
-        // check if enough data was received
-        if (rbytes < min_size) {
-          fprintf(stderr, "not enough UDP data received (%d < %d bytes)\n", rbytes, min_size);
+        if (e131_validate_packet(&e131_packet) != E131_ERR_NONE) {
+          fprintf(stderr, "warning: invalid E1.31 packet received\n");
           continue;
         }
-
-        // check received universe
-        if (((udp_buffer[OFST_UNIV_HIGH] << 8) | udp_buffer[OFST_UNIV_LOW]) != universe) {
+        if (e131_packet.sequence_number != curr_sequence++) {
+          if (!first_packet)
+              fprintf(stderr, "warning: out of order E1.31 packet received\n");
+          curr_sequence = e131_packet.sequence_number + 1;
           continue;
         }
-
-        // copy RGB data from the udp buffer to the AdaLight buffer
-        memcpy(&adalight_buffer[6], &udp_buffer[OFST_DATA], adalight_buffer_size);
-        send_buffer(serial_fd, adalight_buffer, adalight_buffer_size);
+        if (htons(e131_packet.universe) != universe) {
+          continue;
+        }
+        send_adalight(serial_fd, e131_packet.property_values + 1, \
+          htons(e131_packet.property_value_count) - 1);
+        first_packet = 0;
       }
     }
   }
 
   // finished
-  close(epoll_fd);
-  close(socket_fd);
+  close(socket_udp_fd);
   close(serial_fd);
+  close(epoll_fd);
   exit(EXIT_SUCCESS);
 }

@@ -16,20 +16,19 @@ $ make clean
 To run the program, you must supply three options:
 
 ```
-Usage: e131-adalight-bridge [-d device] [-n num_leds] [-u universe]
+Usage: e131-adalight-bridge [-d device] [-u universe]
 
 Options:
-  -d device      serial device to use to communicate with AdaLight
-  -d num_leds    number of RGB LEDs connected to AdaLight
-  -u universe    DMX universe number to respond to
+  -d device      serial device for communicating with AdaLight
+  -u universe    DMX universe number to bridge to AdaLight
 
 All options are mandatory.
 ```
 
 **Note:** because each DMX universe has a maximum of 512 channels and each RGB LED takes 3 channels (one per color), the maximum number of controllable AdaLight LEDs is **170**.
 
-Example invocation for 100 LEDs AdaLight attached to /dev/ttyACM0:
+Example invocation for AdaLight LEDs attached to ```/dev/ttyACM0``` using DMX universe ```1```:
 
 ```shell
-$ ./e131-adalight-bridge -d /dev/ttyACM0 -u 1 -n 100
+$ ./e131-adalight-bridge -d /dev/ttyACM0 -u 1
 ```

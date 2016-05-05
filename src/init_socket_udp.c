@@ -19,17 +19,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <netinet/in.h>
 
 // initialise a UDP listening socket file descriptor
 void init_socket_udp(int fd, uint16_t port) {
-  struct sockaddr_in server_addr;
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_addr.s_addr = INADDR_ANY;
-  server_addr.sin_port = htons(port);
-  bzero(server_addr.sin_zero, sizeof(server_addr.sin_zero));
-  if (bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+  struct sockaddr_in sin;
+  sin.sin_family = AF_INET;
+  sin.sin_addr.s_addr = INADDR_ANY;
+  sin.sin_port = htons(port);
+  memset(sin.sin_zero, 0, sizeof(sin.sin_zero));
+  if (bind(fd, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
     perror("udp socket bind");
     exit(EXIT_FAILURE);
   }

@@ -19,19 +19,20 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
 #define MCAST_GROUP_TEMPLATE "239.255.%d.%d"
 
 // join UDP socket to an E1.31 multicast group on all interfaces
-void join_e131_multicast(int fd, int universe) {
+void join_e131_multicast(int fd, uint16_t universe) {
   char mcast_group[16];
   struct ip_mreq mreq;
 
   // compute multicast group from the universe number
-  unsigned char high = (universe & 0xff00) >> 8;
-  unsigned char low = universe & 0x00ff;
+  uint8_t high = (universe & 0xff00) >> 8;
+  uint8_t low = universe & 0x00ff;
   sprintf(mcast_group, MCAST_GROUP_TEMPLATE, high, low);
 
   // join the multicast group
