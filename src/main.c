@@ -31,7 +31,6 @@
 #include "e131.h"
 
 #define SERIAL_BAUD_RATE __MAX_BAUD
-#define SERIAL_BUFFER_SIZE 1024
 #define MAX_EPOLL_EVENTS 10
 
 int main(int argc, char **argv) {
@@ -117,13 +116,12 @@ int main(int argc, char **argv) {
           continue;
         }
         if (e131_packet.sequence_number != curr_sequence++) {
-            fprintf(stderr, "warning: out of order E1.31 packet received\n");
+          fprintf(stderr, "warning: out of order E1.31 packet received\n");
           curr_sequence = e131_packet.sequence_number + 1;
           continue;
         }
-        if (htons(e131_packet.universe) != universe) {
+        if (htons(e131_packet.universe) != universe)
           continue;
-        }
         send_adalight(serial_fd, e131_packet.property_values + 1, \
           htons(e131_packet.property_value_count) - 1);
       }
