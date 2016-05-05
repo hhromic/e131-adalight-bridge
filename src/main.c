@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <string.h>
@@ -37,11 +38,11 @@ int main(int argc, char **argv) {
   int opt;
   int epoll_fd, serial_fd, socket_udp_fd;
   char *device = NULL;
-  uint16_t universe = 0;
+  uint16_t universe = 0x0000;
   struct epoll_event epoll_events[MAX_EPOLL_EVENTS];
   int nfds, i;
   e131_packet_t e131_packet;
-  uint8_t curr_sequence = 0;
+  uint8_t curr_sequence = 0x00;
 
   // program options
   while ((opt = getopt (argc, argv, "d:u:")) != -1) {
@@ -50,8 +51,8 @@ int main(int argc, char **argv) {
         device = optarg;
         break;
       case 'u':
-        universe = atoi(optarg);
-        if (universe < 1 || universe > 63999) {
+        sscanf(optarg, "%" SCNu16, &universe);
+        if (universe < 0x0001 || universe > 0xf9ff) {
           fprintf(stderr, "error: universe must be between 1-63999\n");
           exit(EXIT_FAILURE);
         }
@@ -61,7 +62,7 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
   }
-  if (device == NULL || universe == 0) {
+  if (device == NULL || universe == 0x0000) {
     show_usage(argv[0]);
     exit(EXIT_FAILURE);
   }
