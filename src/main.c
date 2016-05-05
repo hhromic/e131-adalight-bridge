@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
   struct epoll_event epoll_events[MAX_EPOLL_EVENTS];
   int nfds, i;
   e131_packet_t e131_packet;
-  uint8_t curr_sequence = 0, first_packet = 1;
+  uint8_t curr_sequence = 0;
 
   // program options
   while ((opt = getopt (argc, argv, "d:u:")) != -1) {
@@ -116,8 +116,7 @@ int main(int argc, char **argv) {
           continue;
         }
         if (e131_packet.sequence_number != curr_sequence++) {
-          if (!first_packet)
-              fprintf(stderr, "warning: out of order E1.31 packet received\n");
+            fprintf(stderr, "warning: out of order E1.31 packet received\n");
           curr_sequence = e131_packet.sequence_number + 1;
           continue;
         }
@@ -126,7 +125,6 @@ int main(int argc, char **argv) {
         }
         send_adalight(serial_fd, e131_packet.property_values + 1, \
           htons(e131_packet.property_value_count) - 1);
-        first_packet = 0;
       }
     }
   }
