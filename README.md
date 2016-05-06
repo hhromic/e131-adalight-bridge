@@ -11,9 +11,11 @@ $ make
 $ make clean
 ```
 
+You can install the binary file wherever you want.
+
 ## Running
 
-To run the program, you must supply three options:
+To run the program, you must supply two options:
 
 ```
 Usage: e131-adalight-bridge [-d device] [-u universe]
