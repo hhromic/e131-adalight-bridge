@@ -24,6 +24,6 @@ void show_usage(char *prog_name) {
   fprintf(stderr, "Usage: %s [-d device] [-u universe]\n", prog_name);
   fprintf(stderr, "\nOptions:\n");
   fprintf(stderr, "  -d device      serial device for communicating with AdaLight\n");
-  fprintf(stderr, "  -u universe    DMX universe number to bridge to AdaLight\n");
+  fprintf(stderr, "  -u universe    DMX universe number for Multicast group selection\n");
   fprintf(stderr, "\nAll options are mandatory.\n");
 }
