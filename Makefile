@@ -21,6 +21,7 @@ SOURCES = src/main.c \
 	src/init_serial.c \
 	src/init_socket_udp.c \
 	src/join_e131_multicast.c \
+	src/parse_baud_rate.c \
 	src/send_adalight.c \
 	src/show_usage.c
 PROGRAM = e131-adalight-bridge

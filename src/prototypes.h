@@ -29,6 +29,7 @@ extern void epoll_add_fd(int epoll_fd, int socket_fd);
 extern void init_serial(int fd, speed_t baud_rate);
 extern void init_socket_udp(int fd, uint16_t port);
 extern void join_e131_multicast(int fd, uint16_t universe);
+extern speed_t parse_baud_rate(char *str);
 extern void send_adalight(int fd, uint8_t *rgb_data, size_t size);
 extern void show_usage(char *prog_name);
 

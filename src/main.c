@@ -30,13 +30,13 @@
 #include "prototypes.h"
 #include "e131.h"
 
-#define SERIAL_BAUD_RATE __MAX_BAUD
 #define MAX_EPOLL_EVENTS 10
 
 int main(int argc, char **argv) {
   int opt;
   int epoll_fd, serial_fd, socket_udp_fd;
   char *device = NULL;
+  speed_t baud_rate = B0;
   uint16_t universe = 0x0000;
   struct epoll_event epoll_events[MAX_EPOLL_EVENTS];
   int nfds, i;
@@ -44,10 +44,17 @@ int main(int argc, char **argv) {
   uint8_t curr_sequence = 0x00;
 
   // program options
-  while ((opt = getopt (argc, argv, "d:u:")) != -1) {
+  while ((opt = getopt (argc, argv, "d:b:u:")) != -1) {
     switch (opt) {
       case 'd':
         device = optarg;
+        break;
+      case 'b':
+        baud_rate = parse_baud_rate(optarg);
+        if (baud_rate == B0) {
+          fprintf(stderr, "error: invalid baud rate: %s\n", optarg);
+          exit(EXIT_FAILURE);
+        }
         break;
       case 'u':
         sscanf(optarg, "%" SCNu16, &universe);
@@ -61,7 +68,7 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
   }
-  if (device == NULL || universe == 0x0000) {
+  if (device == NULL || baud_rate == B0 || universe == 0x0000) {
     show_usage(argv[0]);
     exit(EXIT_FAILURE);
   }
@@ -77,7 +84,7 @@ int main(int argc, char **argv) {
     perror("serial device open");
     exit(EXIT_FAILURE);
   }
-  init_serial(serial_fd, SERIAL_BAUD_RATE);
+  init_serial(serial_fd, baud_rate);
   epoll_add_fd(epoll_fd, serial_fd);
   fprintf(stderr, "serial device '%s' opened\n", device);
 
