@@ -21,7 +21,7 @@
 
 // display program options and usage
 void show_usage(char *prog_name) {
-  fprintf(stderr, "Usage: %s [-d device] [-u universe]\n", prog_name);
+  fprintf(stderr, "Usage: %s [-d device] [-b baud_rate] [-u universe]\n", prog_name);
   fprintf(stderr, "Forward E1.31 (sACN) network data to an AdaLight serial device.\n");
   fprintf(stderr, "\nOptions:\n");
   fprintf(stderr, "  -d device      serial device for communicating with AdaLight\n");
