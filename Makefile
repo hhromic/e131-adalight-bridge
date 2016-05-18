@@ -15,25 +15,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-SOURCES = src/main.c \
-	src/e131.c \
-	src/epoll_add_fd.c \
-	src/init_serial.c \
-	src/init_socket_udp.c \
-	src/join_e131_multicast.c \
-	src/parse_baud_rate.c \
-	src/send_adalight.c \
-	src/show_usage.c
 PROGRAM = e131-adalight-bridge
-
-OBJECTS = $(SOURCES:.c=.o)
 CFLAGS = -Wall -O3
+LDFLAGS =
 
-all: $(PROGRAM)
-	strip -s $(PROGRAM)
+SOURCES = $(wildcard src/*.c)
+OBJECTS = $(SOURCES:.c=.o)
 
 $(PROGRAM): $(OBJECTS)
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+	strip -s $(PROGRAM)
 
+.PHONY: clean
 clean:
-	rm -f $(PROGRAM) $(OBJECTS)
+	rm -f $(OBJECTS) $(PROGRAM)
