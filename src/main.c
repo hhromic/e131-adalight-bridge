@@ -35,9 +35,9 @@
 int main(int argc, char **argv) {
   int opt;
   int epoll_fd, serial_fd, socket_udp_fd;
+  uint16_t universe = 0x0001;
   char *device = NULL;
   speed_t baud_rate = B0;
-  uint16_t universe = 0x0001;
   struct epoll_event epoll_events[MAX_EPOLL_EVENTS];
   int nfds, i;
   e131_packet_t e131_packet;
