@@ -44,11 +44,18 @@ int main(int argc, char **argv) {
   uint8_t curr_sequence = 0x00;
 
   // program options
-  while ((opt = getopt(argc, argv, "hd:b:u:")) != -1) {
+  while ((opt = getopt(argc, argv, "hu:d:b:")) != -1) {
     switch (opt) {
       case 'h':
         show_usage(argv[0]);
         exit(EXIT_SUCCESS);
+      case 'u':
+        sscanf(optarg, "%" SCNu16, &universe);
+        if (universe < 0x0001 || universe > 0xf9ff) {
+          fprintf(stderr, "error: universe must be between 1-63999\n");
+          exit(EXIT_FAILURE);
+        }
+        break;
       case 'd':
         device = optarg;
         break;
@@ -56,13 +63,6 @@ int main(int argc, char **argv) {
         baud_rate = parse_baud_rate(optarg);
         if (baud_rate == B0) {
           fprintf(stderr, "error: invalid baud rate: %s\n", optarg);
-          exit(EXIT_FAILURE);
-        }
-        break;
-      case 'u':
-        sscanf(optarg, "%" SCNu16, &universe);
-        if (universe < 0x0001 || universe > 0xf9ff) {
-          fprintf(stderr, "error: universe must be between 1-63999\n");
           exit(EXIT_FAILURE);
         }
         break;
