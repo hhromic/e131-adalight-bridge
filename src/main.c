@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
   }
   if (device == NULL || baud_rate == B0) {
     fprintf(stderr, "error: you must specify serial device and baud rate\n");
-    fprintf(stderr, "Try '%s -h' for more information.\n", argv[0]);
+    show_usage(argv[0]);
     exit(EXIT_FAILURE);
   }
 
