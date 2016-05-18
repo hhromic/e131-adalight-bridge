@@ -21,11 +21,12 @@
 
 // display program options and usage
 void show_usage(char *prog_name) {
-  fprintf(stderr, "Usage: %s [-d device] [-b baud_rate] [-u universe]\n", prog_name);
+  fprintf(stderr, "Usage: %s [-h] [-u universe] -d device -b baud_rate\n", prog_name);
   fprintf(stderr, "Forward E1.31 (sACN) network data to an AdaLight serial device.\n");
   fprintf(stderr, "\nOptions:\n");
+  fprintf(stderr, "  -h             show this help screen\n");
+  fprintf(stderr, "  -u universe    DMX universe number for Multicast (default: 1)\n");
   fprintf(stderr, "  -d device      serial device for communicating with AdaLight\n");
   fprintf(stderr, "  -b baud_rate   baud rate for the serial device\n");
-  fprintf(stderr, "  -u universe    DMX universe number for Multicast group selection\n");
-  fprintf(stderr, "\nAll options are mandatory.\n");
+  fprintf(stderr, "\n");
 }

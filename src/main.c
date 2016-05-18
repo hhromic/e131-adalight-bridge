@@ -37,15 +37,18 @@ int main(int argc, char **argv) {
   int epoll_fd, serial_fd, socket_udp_fd;
   char *device = NULL;
   speed_t baud_rate = B0;
-  uint16_t universe = 0x0000;
+  uint16_t universe = 0x0001;
   struct epoll_event epoll_events[MAX_EPOLL_EVENTS];
   int nfds, i;
   e131_packet_t e131_packet;
   uint8_t curr_sequence = 0x00;
 
   // program options
-  while ((opt = getopt (argc, argv, "d:b:u:")) != -1) {
+  while ((opt = getopt(argc, argv, "hd:b:u:")) != -1) {
     switch (opt) {
+      case 'h':
+        show_usage(argv[0]);
+        exit(EXIT_SUCCESS);
       case 'd':
         device = optarg;
         break;
@@ -64,12 +67,13 @@ int main(int argc, char **argv) {
         }
         break;
       default:
-        show_usage(argv[0]);
+        fprintf(stderr, "Try '%s -h' for more information.\n", argv[0]);
         exit(EXIT_FAILURE);
     }
   }
-  if (device == NULL || baud_rate == B0 || universe == 0x0000) {
-    show_usage(argv[0]);
+  if (device == NULL || baud_rate == B0) {
+    fprintf(stderr, "error: you must specify serial device and baud rate\n");
+    fprintf(stderr, "Try '%s -h' for more information.\n", argv[0]);
     exit(EXIT_FAILURE);
   }
 
