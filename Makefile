@@ -17,12 +17,13 @@
 
 PROGRAM = e131-adalight-bridge
 CFLAGS = -Wall -O3
+LDLIBS =
 
 SOURCES = $(wildcard src/*.c)
 OBJECTS = $(SOURCES:.c=.o)
 
 $(PROGRAM): $(OBJECTS)
-	$(CC) -o $@ $^
+	$(LINK.o) $^ $(LDLIBS) -o $@
 	strip -s $(PROGRAM)
 
 .PHONY: clean
