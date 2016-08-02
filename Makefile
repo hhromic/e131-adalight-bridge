@@ -18,7 +18,7 @@
 TARGET = e131-adalight-bridge
 CPPFLAGS = -MMD -MP
 CFLAGS = -Wall -O3 -std=gnu11 -pedantic
-LDLIBS =
+LDLIBS = -le131
 
 SOURCES = $(wildcard src/*.c)
 OBJECTS = $(SOURCES:.c=.o)

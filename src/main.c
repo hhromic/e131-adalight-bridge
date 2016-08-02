@@ -24,17 +24,18 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <string.h>
+#include <err.h>
+#include <e131.h>
 #include <sys/socket.h>
 #include <sys/epoll.h>
 #include <arpa/inet.h>
 #include "prototypes.h"
-#include "e131.h"
 
 #define MAX_EPOLL_EVENTS 10
 
 int main(int argc, char **argv) {
   int opt;
-  int epoll_fd, serial_fd, socket_udp_fd;
+  int epoll_fd, serial_fd, e131_fd;
   uint16_t universe = 0x0001;
   char *device = NULL;
   speed_t baud_rate = B0;
@@ -78,38 +79,32 @@ int main(int argc, char **argv) {
   }
 
   // create an epoll file descriptor
-  if ((epoll_fd = epoll_create(1)) < 0) {
-    perror("epoll_create1");
-    exit(EXIT_FAILURE);
-  }
+  if ((epoll_fd = epoll_create(1)) < 0)
+    err(EXIT_FAILURE, "epoll_create1");
 
   // open serial device and initialise
-  if ((serial_fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK)) < 0) {
-    perror("serial device open");
-    exit(EXIT_FAILURE);
-  }
+  if ((serial_fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK)) < 0)
+    err(EXIT_FAILURE, "serial device open");
   init_serial(serial_fd, baud_rate);
   epoll_add_fd(epoll_fd, serial_fd);
   fprintf(stderr, "serial device '%s' opened\n", device);
 
-  // open udp socket, initialise and join multicast group
-  if ((socket_udp_fd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-    perror("socket");
-    exit(EXIT_FAILURE);
-  }
-  init_socket_udp(socket_udp_fd, E131_DEFAULT_PORT);
-  join_e131_multicast(socket_udp_fd, universe);
-  epoll_add_fd(epoll_fd, socket_udp_fd);
-  fprintf(stderr, "multicast UDP server listening on port %d\n", E131_DEFAULT_PORT);
+  // open E1.31 socket and join multicast group for the universe
+  if ((e131_fd = e131_socket()) < 0)
+    err(EXIT_FAILURE, "e131_socket");
+  if (e131_bind(e131_fd, E131_DEFAULT_PORT) < 0)
+    err(EXIT_FAILURE, "e131_bind");
+  if (e131_multicast_join(e131_fd, universe) < 0)
+    err(EXIT_FAILURE, "e131_multicast_join");
+  epoll_add_fd(epoll_fd, e131_fd);
+  fprintf(stderr, "E1.31 multicast server listening on port %d\n", E131_DEFAULT_PORT);
 
   // bridge E1.31 data to AdaLight
   fprintf(stderr, "bridging E1.31 (sACN) to AdaLight, use CTRL+C to stop\n");
   for (;;) {
     // wait for an epoll event
-    if ((nfds = epoll_wait(epoll_fd, epoll_events, MAX_EPOLL_EVENTS, -1)) < 0) {
-      perror("epoll_wait");
-      exit(EXIT_FAILURE);
-    }
+    if ((nfds = epoll_wait(epoll_fd, epoll_events, MAX_EPOLL_EVENTS, -1)) < 0)
+      err(EXIT_FAILURE, "epoll_wait");
 
     // check received epoll events
     for (i=0; i<nfds; i++) {
@@ -117,28 +112,26 @@ int main(int argc, char **argv) {
         tcflush(serial_fd, TCIFLUSH);
         continue;
       }
-      if (epoll_events[i].data.fd == socket_udp_fd) { // udp network data received
-        if (recv(socket_udp_fd, e131_packet.raw, sizeof(e131_packet.raw), 0) < 0) {
-          perror("recv");
-          exit(EXIT_FAILURE);
-        }
-        if (e131_validate_packet(&e131_packet) != E131_ERR_NONE) {
+      if (epoll_events[i].data.fd == e131_fd) { // E1.31 network data received
+        if (e131_recv(e131_fd, &e131_packet) < 0)
+          err(EXIT_FAILURE, "e131_recv");
+        if (e131_pkt_validate(&e131_packet) != E131_ERR_NONE) {
           fprintf(stderr, "warning: invalid E1.31 packet received\n");
           continue;
         }
-        if (e131_packet.sequence_number != curr_sequence++) {
+        if (e131_packet.frame.sequence_number != curr_sequence++) {
           fprintf(stderr, "warning: out of order E1.31 packet received\n");
-          curr_sequence = e131_packet.sequence_number + 1;
+          curr_sequence = e131_packet.frame.sequence_number + 1;
           continue;
         }
-        send_adalight(serial_fd, e131_packet.property_values + 1, \
-          htons(e131_packet.property_value_count) - 1);
+        send_adalight(serial_fd, e131_packet.dmp.property_values + 1, \
+          htons(e131_packet.dmp.property_value_count) - 1);
       }
     }
   }
 
   // finished
-  close(socket_udp_fd);
+  close(e131_fd);
   close(serial_fd);
   close(epoll_fd);
   exit(EXIT_SUCCESS);
