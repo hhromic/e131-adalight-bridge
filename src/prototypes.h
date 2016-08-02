@@ -22,7 +22,6 @@
 
 #include <stdint.h>
 #include <termios.h>
-#include "e131.h"
 
 extern void epoll_add_fd(int epoll_fd, int socket_fd);
 extern void init_serial(int fd, speed_t baud_rate);
