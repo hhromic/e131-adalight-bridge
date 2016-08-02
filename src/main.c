@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
           continue;
         }
         send_adalight(serial_fd, e131_packet.dmp.property_values + 1, \
-          htons(e131_packet.dmp.property_value_count) - 1);
+          ntohs(e131_packet.dmp.property_value_count) - 1);
       }
     }
   }
