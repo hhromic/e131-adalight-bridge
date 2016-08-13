@@ -2,14 +2,12 @@
 
 ## Compiling
 
-The bridging server requires the `libe131` library installed in your system. Get it [from here][libe131].
-
 To compile the bridging server, simply use the `make` utility:
 
     $ make clean
     $ make
 
-You can install the output binary file wherever you want.
+You must have the `libe131` ([get it here][libe131]) development library installed on your system. Once compiled, you can install the output binary file wherever you want.
 
 [libe131]: https://github.com/hhromic/libe131/releases/latest
 
@@ -31,3 +29,19 @@ To run the program, you must supply at least a serial device and baud rate to us
 Example invocation for AdaLight LEDs attached to `/dev/ttyACM0` at `115200` baud using DMX universe `2`:
 
     $ ./e131-adalight-bridge -d /dev/ttyACM0 -b 115200 -u 2
+
+## License
+
+This software is under the **Apache License 2.0**.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
