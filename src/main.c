@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
   int nfds, i;
   e131_packet_t e131_packet;
   e131_error_t e131_error;
-  uint8_t last_seq = 0x00;
+  uint8_t last_seq_number = 0x00;
 
   // program options
   while ((opt = getopt(argc, argv, "hu:d:b:")) != -1) {
@@ -120,14 +120,14 @@ int main(int argc, char **argv) {
           fprintf(stderr, "e131_pkt_validate: %s\n", e131_strerror(e131_error));
           continue;
         }
-        if (e131_pkt_discard(&e131_packet, last_seq)) {
+        if (e131_pkt_discard(&e131_packet, last_seq_number)) {
           fprintf(stderr, "warning: out of order E1.31 packet received\n");
-          last_seq = e131_packet.frame.seq_number;
+          last_seq_number = e131_packet.frame.seq_number;
           continue;
         }
         send_adalight(serial_fd, e131_packet.dmp.prop_val + 1, \
           ntohs(e131_packet.dmp.prop_val_cnt) - 1);
-        last_seq = e131_packet.frame.seq_number;
+        last_seq_number = e131_packet.frame.seq_number;
       }
     }
   }
